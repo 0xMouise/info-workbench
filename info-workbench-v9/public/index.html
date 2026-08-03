@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信息收集工作台 v9 · Agent MCP</title>
+    <!-- Markdown 支持 -->
+    <script src="/vendor/marked.min.js"></script>
+    <!-- 代码高亮 -->
+    <link rel="stylesheet" href="/vendor/github.min.css">
+    <script src="/vendor/highlight.min.js"></script>
+    <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <div class="navbar">
+        <div class="brand-lockup">
+            <div class="brand-mark" aria-hidden="true">⌁</div>
+            <div class="brand-copy">
+                <h1>信息收集工作台 <span style="color:#146c5a">v9</span></h1>
+                <p>LOCAL RECON WORKSPACE · SQLITE CORE · AGENT READY</p>
+            </div>
+        </div>
+        <div class="workspace-meta" aria-live="polite">
+            <div class="workspace-target">
+                <div class="workspace-eyebrow">当前目标</div>
+                <div class="workspace-name" id="workspaceTargetName">未命名目标</div>
+            </div>
+            <div class="progress-cluster" title="当前目标完成进度">
+                <div class="progress-track"><div class="progress-fill" id="workspaceProgressFill"></div></div>
+                <div class="progress-copy" id="workspaceProgressText">0/0 完成</div>
+            </div>
+            <div class="save-state" id="saveState">
+                <span class="save-dot"></span>
+                <span id="saveStateText">准备就绪</span>
+            </div>
+        </div>
+        <div class="navbar-actions">
+            <button class="btn btn-default nav-action-btn" onclick="app.openSearch()" title="搜索（Ctrl+F）">
+                <svg class="nav-action-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="10.75" cy="10.75" r="6.25" stroke-width="1.8"></circle>
+                    <path d="M15.5 15.5L20 20" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+                <span class="action-label">搜索</span>
+            </button>
+            <button class="btn btn-primary-v6 nav-action-btn" onclick="app.exportHTMLReport()">
+                <svg class="nav-action-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M6.5 3.75h8l3 3v13.5h-11z" stroke-width="1.7" stroke-linejoin="round"></path>
+                    <path d="M14.5 3.75v3h3M9 11h6M9 14.5h6M9 18h4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <span class="action-label">导出报告</span>
+            </button>
+            <button class="btn btn-default nav-action-btn agent-status-button" id="agentStatusButton" onclick="app.toggleAgentPanel()" title="Agent 同步中心">
+                <span class="agent-status-dot" id="agentStatusDot"></span>
+                <span class="action-label" id="agentStatusText">Agent 离线</span>
+            </button>
+            <div class="data-menu-wrap">
+                <button class="btn btn-default nav-action-btn" onclick="event.stopPropagation(); app.toggleDataMenu()" aria-haspopup="true" aria-controls="dataMenu">
+                    <svg class="nav-action-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 7.5h6l1.6 2H20v9.25A1.25 1.25 0 0 1 18.75 20H5.25A1.25 1.25 0 0 1 4 18.75z" stroke-width="1.7" stroke-linejoin="round"></path>
+                        <path d="M4 7.5V5.25A1.25 1.25 0 0 1 5.25 4h4.1l1.65 2h7.75A1.25 1.25 0 0 1 20 7.25V9.5" stroke-width="1.7" stroke-linejoin="round"></path>
+                    </svg>
+                    <span class="action-label">项目数据</span>
+                    <svg class="nav-action-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M4 6.25L8 10l4-3.75" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </button>
+                <div class="data-menu" id="dataMenu">
+                    <button onclick="app.openProjectOverview(); app.closeDataMenu()">项目概览</button>
+                    <button onclick="app.openDuplicateCenter(); app.closeDataMenu()">重复结果中心</button>
+                    <button onclick="app.openCommandPalette(); app.closeDataMenu()">命令面板 <span class="menu-shortcut">Ctrl K</span></button>
+                    <div class="data-menu-separator"></div>
+                    <button onclick="app.exportCurrentTarget(); app.closeDataMenu()">导出当前目标</button>
+                    <button onclick="app.exportData(); app.closeDataMenu()">备份全部数据</button>
+                    <button onclick="app.createSnapshot(); app.closeDataMenu()">创建本地快照</button>
+                    <button onclick="app.restoreLatestSnapshot(); app.closeDataMenu()">恢复最近快照</button>
+                    <div class="data-menu-separator"></div>
+                    <button onclick="app.importData(); app.closeDataMenu()">导入 / 恢复数据</button>
+                </div>
+            </div>
+            <button class="btn btn-default nav-action-btn" onclick="app.toggleSettings()" title="设置">
+                <svg class="nav-action-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 7h7M15 7h5M4 17h5M13 17h7" stroke-width="1.8" stroke-linecap="round"></path>
+                    <circle cx="13" cy="7" r="2" stroke-width="1.7"></circle>
+                    <circle cx="11" cy="17" r="2" stroke-width="1.7"></circle>
+                </svg>
+                <span class="action-label">设置</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 标签页 -->
+    <div class="tabs-container" id="tabsContainer">
+        <div class="tab-add" onclick="app.addTarget()">+</div>
+    </div>
+
+    <!-- 主工作区 -->
+    <div class="main-container">
+        <aside class="card-navigator" id="cardNavigator">
+            <div class="navigator-head">
+                <button class="icon-button navigator-toggle" id="navigatorToggle" onclick="app.toggleNavigator()" title="收起卡片导航" aria-label="收起卡片导航" aria-expanded="true">‹</button>
+                <div class="navigator-title">卡片导航</div>
+                <button class="icon-button" onclick="app.openTrash()" title="回收站">♲</button>
+            </div>
+            <div class="navigator-body">
+                <div class="navigator-filters">
+                    <label class="navigator-query-wrap">
+                        <span aria-hidden="true">⌕</span>
+                        <input id="navigatorQueryFilter" type="search" placeholder="筛选标题或内容" oninput="app.setNavigatorQuery(this.value)">
+                    </label>
+                    <div class="filter-row" id="navigatorStatusFilters">
+                        <button class="filter-chip active" data-status="all" onclick="app.setNavigatorStatus('all')">全部</button>
+                        <button class="filter-chip" data-status="todo" onclick="app.setNavigatorStatus('todo')">待办</button>
+                        <button class="filter-chip" data-status="doing" onclick="app.setNavigatorStatus('doing')">进行中</button>
+                        <button class="filter-chip" data-status="done" onclick="app.setNavigatorStatus('done')">完成</button>
+                    </div>
+                    <div class="navigator-filter-grid">
+                        <select class="navigator-select" id="navigatorRiskFilter" onchange="app.setNavigatorRisk(this.value)">
+                            <option value="all">全部风险</option><option value="critical">严重</option><option value="high">高危</option>
+                            <option value="medium">中危</option><option value="low">低危</option><option value="info">信息</option>
+                        </select>
+                        <select class="navigator-select" id="navigatorSourceFilter" onchange="app.setNavigatorSource(this.value)"><option value="all">全部来源</option></select>
+                        <select class="navigator-select navigator-tag-filter" id="navigatorTagFilter" onchange="app.setNavigatorTag(this.value)"><option value="all">全部标签</option></select>
+                    </div>
+                    <button class="navigator-filter-reset" id="navigatorFilterReset" onclick="app.resetNavigatorFilters()">清除筛选</button>
+                </div>
+                <div class="navigator-list" id="navigatorList"></div>
+            </div>
+            <div class="navigator-footer">
+                <div class="navigator-footer-row"><span id="storageUsageText">正在计算存储…</span><button class="text-button" onclick="app.createSnapshot()">立即快照</button></div>
+                <div style="margin-top:4px" id="lastSnapshotText">尚无本地快照</div>
+            </div>
+        </aside>
+        <div class="canvas-wrapper show-grid" id="canvasWrapper">
+            <div class="canvas-grid" id="canvasGrid" aria-hidden="true"></div>
+            <svg class="canvas-connections" id="canvasConnections"></svg>
+            <div class="canvas" id="canvas"></div>
+        </div>
+        <div class="canvas-toolbar" id="canvasToolbar">
+            <button class="canvas-tool" onclick="app.toggleCardSelector()" title="添加卡片">＋ 卡片</button>
+            <div class="toolbar-divider"></div>
+            <button class="canvas-tool" onclick="app.zoomFromToolbar(-0.1)" title="缩小">−</button>
+            <button class="canvas-tool zoom-value" id="toolbarZoomValue" onclick="app.resetZoom()" title="恢复 100%">100%</button>
+            <button class="canvas-tool" onclick="app.zoomFromToolbar(0.1)" title="放大">＋</button>
+            <div class="toolbar-divider"></div>
+            <button class="canvas-tool" onclick="app.fitView()" title="适应画布">适应</button>
+            <button class="canvas-tool" id="toolbarMinimap" onclick="app.toggleMinimap()" title="小地图">地图</button>
+            <button class="canvas-tool" id="toolbarLock" onclick="app.toggleCanvasLock()" title="锁定卡片位置">解锁</button>
+            <button class="canvas-tool performance-tool" id="toolbarPerformance" onclick="app.cyclePerformanceMode()" title="自动在大画布中减少离屏绘制">性能·自动</button>
+        </div>
+    </div>
+
+    <!-- 添加卡片按钮 -->
+    <button class="add-card-btn" id="addCardBtn" onclick="app.toggleCardSelector()">+</button>
+
+    <!-- 回到卡片/适应视图 按钮 -->
+    <button class="fit-view-btn" id="fitViewBtn" onclick="app.fitView()" title="回到卡片所在位置 (快捷键: Home)">⌖</button>
+
+    <!-- 选中状态与批量操作 -->
+    <div class="batch-actions" id="batchActions" role="toolbar" aria-label="选中卡片操作">
+        <strong id="selectedCount">已选 0 张卡片</strong>
+        <button class="selection-clear" onclick="app.clearSelection()" title="取消选择">取消</button>
+        <span class="selection-divider" aria-hidden="true"></span>
+        <button onclick="app.connectCards()">连线</button>
+        <button onclick="app.alignCards()">对齐</button>
+        <button onclick="app.batchCollapse()">折叠</button>
+        <button onclick="app.batchExpand()">展开</button>
+        <button class="selection-danger" onclick="app.batchDelete()">删除</button>
+    </div>
+
+    <!-- 小地图 -->
+    <div class="minimap" id="minimap">
+        <canvas id="minimapCanvas"></canvas>
+        <div class="minimap-viewport" id="minimapViewport"></div>
+    </div>
+
+    <!-- 搜索面板 -->
+    <div class="search-panel" id="searchPanel">
+        <div class="search-header">
+            <input type="text" class="search-input" placeholder="搜索卡片内容..." id="searchInput">
+            <button class="search-close" onclick="app.closeSearch()">&times;</button>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <!-- 设置面板 -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <div class="settings-title">设置</div>
+            <button class="search-close" onclick="app.toggleSettings()">&times;</button>
+        </div>
+        <div class="settings-section">
+            <h3>外观设置</h3>
+            <label>
+                <input type="checkbox" id="darkMode" onchange="app.toggleDarkMode()"> 暗色主题
+            </label>
+            <label>
+                字体大小: <input type="range" min="12" max="18" value="14" id="fontSize" oninput="app.updateFontSize(this.value)">
+                <span id="fontSizeValue">14px</span>
+            </label>
+            <label>
+                <input type="checkbox" id="showGrid" checked onchange="app.toggleGrid()"> 显示网格
+            </label>
+            <label>
+                <input type="checkbox" id="showMinimap" onchange="app.toggleMinimap()"> 显示小地图
+            </label>
+        </div>
+        <div class="settings-section">
+            <h3>默认设置</h3>
+            <label>
+                默认卡片宽度: <input type="number" value="400" id="defaultWidth" min="300" max="800" onchange="app.updateDefaultSize()">
+            </label>
+            <label>
+                默认卡片高度: <input type="number" value="300" id="defaultHeight" min="200" max="600" onchange="app.updateDefaultSize()">
+            </label>
+        </div>
+        <div class="settings-section">
+            <h3>行为设置</h3>
+            <label>
+                <input type="checkbox" id="autoSave" checked onchange="app.toggleAutoSave()"> 自动保存
+            </label>
+            <label>
+                <input type="checkbox" id="confirmDelete" checked onchange="app.toggleConfirmDelete()"> 删除时确认
+            </label>
+            <label>
+                <input type="checkbox" id="showAlignGuides" checked onchange="app.toggleAlignGuides()"> 显示对齐辅助线
+            </label>
+            <button class="btn btn-default" style="width: 100%; margin-top: 8px;" onclick="app.resetAllPrompts()">重置所有提示</button>
+        </div>
+        <div class="settings-section">
+            <h3>快捷键</h3>
+            <div style="font-size: 12px; line-height: 1.8; color: #606266;">
+                <div><kbd>Ctrl+S</kbd> - 导出当前目标</div>
+                <div><kbd>Ctrl+Z</kbd> - 撤销</div>
+                <div><kbd>Ctrl+Y</kbd> - 重做</div>
+                <div><kbd>Ctrl+A</kbd> - 全选卡片</div>
+                <div><kbd>Delete</kbd> - 删除选中</div>
+                <div><kbd>Esc</kbd> - 取消选择/关闭面板</div>
+                <div><kbd>Ctrl+F</kbd> - 搜索</div>
+                <div><kbd>Ctrl+Plus</kbd> - 放大画布</div>
+                <div><kbd>Ctrl+Minus</kbd> - 缩小画布</div>
+                <div><kbd>Home</kbd> - 回到卡片所在位置</div>
+                <div><kbd>Shift+拖拽</kbd> - 框选卡片</div>
+            </div>
+        </div>
+    </div>
+
+    <aside class="agent-panel" id="agentPanel" aria-label="Agent 同步中心">
+        <div class="agent-panel-head">
+            <div>
+                <div class="agent-kicker">AGENT BRIDGE</div>
+                <div class="settings-title">同步中心</div>
+            </div>
+            <button class="search-close" onclick="app.toggleAgentPanel(false)">&times;</button>
+        </div>
+        <div class="agent-bridge-card">
+            <div class="agent-bridge-row"><span>SQLite 数据服务</span><strong id="agentBridgeState">未连接</strong></div>
+            <p>Agent 调用外部扫描器后，通过 MCP 直接写入 SQLite。页面关闭也不会丢失结果；本服务不包含、也不会启动扫描器。</p>
+        </div>
+        <div class="agent-panel-actions">
+            <button class="btn btn-default" onclick="app.fetchAgentEvents(true)">立即同步</button>
+            <button class="btn btn-default" onclick="app.syncAgentRegistry(true)">保存到数据库</button>
+        </div>
+        <section class="agent-inbox" aria-labelledby="agentInboxHeading">
+            <div class="agent-activity-title">
+                <span id="agentInboxHeading">结果收件箱 <b class="agent-inbox-count" id="agentInboxCount">0</b></span>
+                <button class="text-button" onclick="app.markAllAgentBatchesReviewed()">全部已处理</button>
+            </div>
+            <div class="agent-inbox-list" id="agentInboxList">
+                <div class="agent-empty">Agent 扫描批次会在这里等待处理。</div>
+            </div>
+        </section>
+        <div class="agent-activity-title"><span>最近活动</span><button class="text-button" onclick="app.clearAgentActivity()">清空</button></div>
+        <div class="agent-activity-list" id="agentActivityList">
+            <div class="agent-empty">Agent/MCP 对 SQLite 的写入会实时显示在这里。</div>
+        </div>
+    </aside>
+
+    <div class="agent-result-receipt" id="agentResultReceipt" role="status" aria-live="polite">
+        <div class="agent-receipt-mark" aria-hidden="true">✓</div>
+        <div class="agent-receipt-copy">
+            <strong id="agentReceiptTitle">Agent 已写入结果</strong>
+            <span id="agentReceiptMeta"></span>
+        </div>
+        <button class="agent-receipt-action" onclick="app.openLastAgentResult()">查看结果</button>
+        <button class="agent-receipt-close" onclick="app.dismissAgentResultReceipt()" aria-label="关闭通知">&times;</button>
+    </div>
+
+    <!-- 卡片选择器 -->
+    <div class="card-selector" id="cardSelector">
+        <div class="selector-tabs">
+            <div class="selector-tab active" data-tab="groups" onclick="app.switchSelectorTab('groups')">常用组合</div>
+            <div class="selector-tab" data-tab="templates" onclick="app.switchSelectorTab('templates')">单个模板</div>
+            <div class="selector-tab" data-tab="custom" onclick="app.switchSelectorTab('custom')">自定义</div>
+        </div>
+        <div class="selector-content">
+            <div class="selector-section active" id="sectionGroups"></div>
+            <div class="selector-section" id="sectionTemplates"></div>
+            <div class="selector-section" id="sectionCustom">
+                <button class="btn btn-primary" style="width: 100%;" onclick="app.openCustomCardModal()">创建自定义卡片</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义卡片弹窗 -->
+    <div class="modal-overlay" id="customCardModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">创建自定义卡片</div>
+                <button class="modal-close" onclick="app.closeCustomCardModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">卡片名称</label>
+                    <input type="text" class="form-input" id="customCardName" placeholder="输入卡片名称">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">卡片图标</label>
+                    <div class="icon-picker" id="iconPicker"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">卡片描述</label>
+                    <textarea class="form-input form-textarea" id="customCardDesc" placeholder="输入卡片描述（可选）"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" onclick="app.closeCustomCardModal()">取消</button>
+                <button class="btn btn-primary" onclick="app.createCustomCard()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通用对话框 -->
+    <div class="dialog-overlay" id="dialogOverlay">
+        <div class="dialog-box">
+            <div class="dialog-header">
+                <div class="dialog-title" id="dialogTitle"></div>
+            </div>
+            <div class="dialog-body">
+                <div class="dialog-message" id="dialogMessage"></div>
+                <input type="text" class="dialog-input" id="dialogInput" style="display: none;">
+                <select class="dialog-input" id="dialogSelect" style="display: none;"></select>
+            </div>
+            <div class="dialog-footer" id="dialogFooter"></div>
+        </div>
+    </div>
+
+    <!-- 快捷键提示 -->
+    <div class="shortcut-hint" id="shortcutHint"></div>
+
+    <!-- 缩放提示 -->
+    <div class="zoom-indicator" id="zoomIndicator"></div>
+
+    <!-- 工具输出解析面板 -->
+    <div class="parse-output-panel" id="parseOutputPanel">
+        <div class="parse-output-header">
+            <div class="modal-title">工具输出解析</div>
+            <button class="modal-close" onclick="app.closeParsePanel()">&times;</button>
+        </div>
+        <div class="parse-output-body">
+            <div class="form-group">
+                <label class="form-label">选择工具类型</label>
+                <select class="form-input" id="parseToolType" onchange="app.updateParsePlaceholder()">
+                    <option value="nmap">Nmap 端口扫描</option>
+                    <option value="subfinder">Subfinder 子域名</option>
+                    <option value="dirsearch">Dirsearch 目录扫描</option>
+                    <option value="nuclei">Nuclei 漏洞扫描</option>
+                    <option value="httpx">HTTPX 探测</option>
+                    <option value="custom">自定义解析</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">粘贴工具输出</label>
+                <textarea class="parse-output-textarea" id="parseOutputText" placeholder="粘贴工具输出..."></textarea>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary" onclick="app.parseToolOutput()">解析</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">解析后如何处理</label>
+                <select class="form-input" id="parseWriteMode">
+                    <option value="preview">只预览，不写入</option>
+                    <option value="append">追加到当前卡片</option>
+                    <option value="replace">覆盖当前卡片</option>
+                    <option value="new">创建新卡片</option>
+                </select>
+                <label style="display:flex;align-items:center;gap:7px;margin-top:8px;font-size:12px"><input type="checkbox" id="parseDeduplicate" checked> 自动去重</label>
+            </div>
+            <div class="parse-results" id="parseResults" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="cardMetaModal">
+        <div class="modal v7-modal">
+            <div class="modal-header"><div class="modal-title">卡片属性</div><button class="modal-close" onclick="app.closeCardMeta()">&times;</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">风险等级</label><select class="form-input" id="cardRiskInput"><option value="info">信息</option><option value="low">低危</option><option value="medium">中危</option><option value="high">高危</option><option value="critical">严重</option></select></div>
+                <div class="form-group"><label class="form-label">标签</label><input class="form-input" id="cardTagsInput" placeholder="多个标签用逗号分隔，例如：外网, API, 重点资产"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-default" onclick="app.closeCardMeta()">取消</button><button class="btn btn-primary-v6" onclick="app.saveCardMeta()">保存</button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="trashModal">
+        <div class="modal v7-modal">
+            <div class="modal-header"><div class="modal-title">回收站</div><button class="modal-close" onclick="app.closeTrash()">&times;</button></div>
+            <div class="modal-body"><div class="trash-list" id="trashList"></div></div>
+            <div class="modal-footer"><button class="btn btn-default" onclick="app.emptyTrash()">清空回收站</button><button class="btn btn-primary-v6" onclick="app.closeTrash()">完成</button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="connectionModal">
+        <div class="modal v7-modal">
+            <div class="modal-header"><div class="modal-title">编辑连线</div><button class="modal-close" onclick="app.closeConnectionEditor()">&times;</button></div>
+            <div class="modal-body"><div class="form-group"><label class="form-label">关系类型</label><select class="form-input" id="connectionTypeInput"></select></div></div>
+            <div class="modal-footer"><button class="btn btn-default" onclick="app.deleteEditingConnection()">删除</button><button class="btn btn-default" onclick="app.reverseEditingConnection()">反转方向</button><button class="btn btn-primary-v6" onclick="app.saveConnectionEditor()">保存</button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="projectOverviewModal">
+        <div class="modal governance-modal">
+            <div class="modal-header"><div><div class="governance-kicker">PROJECT PULSE</div><div class="modal-title" id="overviewTitle">项目概览</div></div><button class="modal-close" onclick="app.closeProjectOverview()">&times;</button></div>
+            <div class="modal-body"><div id="projectOverviewContent"></div></div>
+            <div class="modal-footer"><button class="btn btn-default" onclick="app.openDuplicateCenter()">查看重复结果</button><button class="btn btn-primary-v6" onclick="app.closeProjectOverview()">完成</button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="duplicateCenterModal">
+        <div class="modal governance-modal">
+            <div class="modal-header"><div><div class="governance-kicker">DATA HYGIENE</div><div class="modal-title">重复结果中心</div></div><button class="modal-close" onclick="app.closeDuplicateCenter()">&times;</button></div>
+            <div class="modal-body"><div class="duplicate-list" id="duplicateCenterList"></div></div>
+            <div class="modal-footer"><span class="governance-note">合并前会创建撤销记录，其余卡片进入回收站。</span><button class="btn btn-primary-v6" onclick="app.closeDuplicateCenter()">完成</button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="cardHistoryModal">
+        <div class="modal governance-modal history-modal">
+            <div class="modal-header"><div><div class="governance-kicker">PROVENANCE</div><div class="modal-title" id="cardHistoryTitle">来源与历史</div></div><button class="modal-close" onclick="app.closeCardHistory()">&times;</button></div>
+            <div class="modal-body"><div id="cardHistoryContent"></div></div>
+            <div class="modal-footer"><button class="btn btn-primary-v6" onclick="app.closeCardHistory()">完成</button></div>
+        </div>
+    </div>
+
+    <div class="command-palette-overlay" id="commandPalette" role="dialog" aria-modal="true" aria-label="命令面板">
+        <div class="command-palette-box">
+            <div class="command-search-row"><span class="command-mark">⌘</span><input id="commandPaletteInput" autocomplete="off" placeholder="输入命令或目标名称…" oninput="app.renderCommandPalette(this.value)"><kbd>Esc</kbd></div>
+            <div class="command-list" id="commandPaletteList"></div>
+            <div class="command-footer"><span>↑↓ 选择</span><span>Enter 执行</span><span>Ctrl K 打开</span></div>
+        </div>
+    </div>
+
+    <script type="module" src="/assets/bootstrap.js"></script>
+</body>
+</html>
