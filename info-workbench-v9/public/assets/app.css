@@ -1652,6 +1652,13 @@
             cursor: pointer;
         }
 
+        .connection-hit-area {
+            fill: none;
+            stroke: transparent;
+            pointer-events: stroke;
+            cursor: pointer;
+        }
+
         .connection-line::before {
             content: '';
             position: absolute;
@@ -1666,6 +1673,18 @@
 
         .connection-line:hover {
             background: #66b1ff;
+        }
+
+        .connection-line:active {
+            stroke: #f56c6c;
+            stroke-width: 3;
+        }
+
+        .connection-hint {
+            margin-top: 8px;
+            color: #7b8581;
+            font-size: 11px;
+            line-height: 1.5;
         }
 
         .connection-line:hover::before {
@@ -1951,13 +1970,21 @@
         .toolbar-divider { width: 1px; height: 20px; margin: 0 3px; background: var(--v6-line); }
 
         .card-connection-port {
-            position: absolute; z-index: 6; top: 50%; width: 12px; height: 12px; border: 2px solid #fff;
+            position: absolute; z-index: 6; width: 24px; height: 24px;
+            border-radius: 50%; background: transparent; box-shadow: none;
+            opacity: 0; cursor: crosshair; transition: opacity .15s, transform .15s;
+        }
+        .card-connection-port::after {
+            content: ''; position: absolute; inset: 6px; border: 2px solid #fff;
             border-radius: 50%; background: var(--v6-primary); box-shadow: 0 0 0 1px rgba(20,108,90,.35);
-            opacity: 0; transform: translateY(-50%); cursor: crosshair; transition: opacity .15s, transform .15s;
         }
         .card:hover .card-connection-port { opacity: 1; }
-        .card-connection-port.in { left: -7px; } .card-connection-port.out { right: -7px; }
-        .card-connection-port:hover { transform: translateY(-50%) scale(1.25); }
+        .card-connection-port.top { top: -12px; left: 50%; transform: translateX(-50%); }
+        .card-connection-port.right { top: 50%; right: -12px; transform: translateY(-50%); }
+        .card-connection-port.bottom { bottom: -12px; left: 50%; transform: translateX(-50%); }
+        .card-connection-port.left { top: 50%; left: -12px; transform: translateY(-50%); }
+        .card-connection-port.top:hover, .card-connection-port.bottom:hover { transform: translateX(-50%) scale(1.25); }
+        .card-connection-port.left:hover, .card-connection-port.right:hover { transform: translateY(-50%) scale(1.25); }
         .card-meta-strip { display: flex; align-items: center; gap: 5px; min-height: 25px; padding: 4px 10px 0; overflow: hidden; }
         .risk-badge, .tag-badge { padding: 2px 7px; border-radius: 99px; font-size: 10px; white-space: nowrap; }
         .risk-badge { color: #fff; background: #8a94a3; cursor: pointer; }

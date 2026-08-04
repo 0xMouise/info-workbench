@@ -67,6 +67,7 @@ try {
   await waitFor(() => cdp.evaluate("document.getElementById('agentStatusText')?.textContent === '本地库已连接'"), "WebSocket connection");
   const presetGroups = await cdp.evaluate(`app.data.cardGroups.map(group => ({ id: group.id, cards: group.templates?.length || 0 }))`);
   if (JSON.stringify(presetGroups) !== JSON.stringify([
+    { id: "domain-breakdown", cards: 4 },
     { id: "src-specialty", cards: 12 },
     { id: "edusrc-specialty", cards: 12 }
   ])) throw new Error(`Specialty card presets missing: ${JSON.stringify(presetGroups)}`);

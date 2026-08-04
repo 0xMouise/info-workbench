@@ -3,7 +3,10 @@
 
         const CARD_TEMPLATES = [
             { id: 'company', icon: '🏢', title: '企业信息', desc: '公司架构、股权关系、子公司' },
-            { id: 'domain', icon: '🌐', title: '主域名', desc: 'Whois、ICP备案、DNS记录' },
+            { id: 'domain', icon: '🌐', title: '主域名', desc: '根域名总览、归属结论与关联线索' },
+            { id: 'whois', icon: '📜', title: 'WHOIS', desc: '注册商、注册人、注册时间与到期时间' },
+            { id: 'icp', icon: '🏛️', title: 'ICP备案', desc: '备案号、主办单位、网站负责人' },
+            { id: 'dns', icon: '🛰️', title: 'DNS解析记录', desc: 'A、AAAA、CNAME、MX、NS、TXT记录' },
             { id: 'subdomain', icon: '🔍', title: '子域名', desc: '子域名发现、资产梳理' },
             { id: 'port', icon: '🔌', title: '端口服务', desc: '开放端口、服务版本' },
             { id: 'fingerprint', icon: '👆', title: '指纹识别', desc: 'Web指纹、中间件、框架' },
@@ -23,7 +26,10 @@
         // 每种卡片模板的填写格式建议（用于输入框占位提示，避免与卡片描述重复）
         const FIELD_PLACEHOLDERS = {
             company: '格式示例：\n公司全称 | 统一社会信用代码\n股权结构 / 母公司 / 子公司列表\n关联企业（天眼查/企查查关联方）',
-            domain: '格式示例：\nWhois: 注册商 / 注册人 / 注册时间\nICP备案: 备案号 / 主体单位\nDNS记录: A / MX / TXT / NS',
+            domain: '格式示例：\n根域名：example.com\n归属结论：主体 / 品牌 / 授权范围\n关联线索：同主体域名、注册邮箱（脱敏）',
+            whois: '格式示例：\n注册商：\n注册人 / 组织（脱敏）：\n注册时间：\n到期时间：\nNameserver：',
+            icp: '格式示例：\n备案号：\n主办单位：\n网站负责人：\n备案主体性质：\n备案域名 / 审核时间：',
+            dns: '格式示例：\nA / AAAA：\nCNAME：\nMX：\nNS：\nTXT：\n来源与解析时间：',
             subdomain: '格式示例：\nsub.example.com | 1.2.3.4 | 200 存活\nsub2.example.com | CNAME → xxx.cdn.com',
             port: '格式示例：\n1.2.3.4:80    http    nginx 1.20\n1.2.3.4:3306  mysql   5.7.30',
             fingerprint: '格式示例：\n中间件: Nginx / Tomcat / IIS\n框架: ThinkPHP / Spring / Django\nCMS: WordPress 6.x',
@@ -47,6 +53,29 @@
             { id: 'discovered', label: '发现自', color: '#e6a23c' },
             { id: 'merged',     label: '合并自', color: '#909399' },
             { id: 'attack',     label: '攻击路径', color: '#f56c6c' }
+        ];
+
+        const DOMAIN_BREAKDOWN_TEMPLATES = [
+            {
+                id: 'domain', icon: '🌐', title: '主域名',
+                desc: '根域名总览、归属结论与关联线索', tags: ['域名', '总览'],
+                content: '## 根域名总览\n- 根域名：\n- 归属主体 / 品牌：\n- 是否在授权范围：\n- 关联域名：\n\n## 结论\n- 资产归属证据：\n- 待核实线索：'
+            },
+            {
+                id: 'whois', icon: '📜', title: 'WHOIS',
+                desc: '注册商、注册人、注册时间与到期时间', tags: ['域名', 'WHOIS'],
+                content: '## WHOIS 信息\n| 字段 | 值 | 来源 | 采集时间 |\n| --- | --- | --- | --- |\n| 注册商 |  |  |  |\n| 注册人 / 组织（脱敏） |  |  |  |\n| 注册时间 |  |  |  |\n| 到期时间 |  |  |  |\n| Nameserver |  |  |  |'
+            },
+            {
+                id: 'icp', icon: '🏛️', title: 'ICP备案',
+                desc: '备案号、主办单位、网站负责人', tags: ['域名', 'ICP'],
+                content: '## ICP 备案\n| 字段 | 值 | 来源 | 审核 / 采集时间 |\n| --- | --- | --- | --- |\n| 备案号 |  |  |  |\n| 主办单位 |  |  |  |\n| 网站负责人 |  |  |  |\n| 主体性质 |  |  |  |\n\n## 同主体域名\n- 备案域名：\n- 备案主体关联：'
+            },
+            {
+                id: 'dns', icon: '🛰️', title: 'DNS解析记录',
+                desc: 'A、AAAA、CNAME、MX、NS、TXT记录', tags: ['域名', 'DNS'],
+                content: '## DNS 解析记录\n| 类型 | 名称 | 值 / 指向 | TTL | 来源 / 时间 |\n| --- | --- | --- | --- | --- |\n| A |  |  |  |  |\n| AAAA |  |  |  |  |\n| CNAME |  |  |  |  |\n| MX |  |  |  |  |\n| NS |  |  |  |  |\n| TXT |  |  |  |  |\n\n## 判断\n- CDN / 云厂商：\n- 是否存在历史解析线索：'
+            }
         ];
 
         const SRC_SPECIALTY_TEMPLATES = [
@@ -176,6 +205,12 @@
         ];
 
         const DEFAULT_GROUPS = [
+            {
+                id: 'domain-breakdown',
+                name: '域名基础拆解',
+                description: '主域名 → WHOIS / ICP备案 / DNS解析记录',
+                templates: DOMAIN_BREAKDOWN_TEMPLATES
+            },
             {
                 id: 'src-specialty',
                 name: 'SRC 信息收集专项',
@@ -1469,8 +1504,10 @@
                             </div>
                         </div>
                     </div>
-                    <span class="card-connection-port in" data-port="in" title="拖拽创建连线"></span>
-                    <span class="card-connection-port out" data-port="out" title="拖拽创建连线"></span>
+                    <span class="card-connection-port top" data-port="top" title="从上侧拖拽创建连线"></span>
+                    <span class="card-connection-port right" data-port="right" title="从右侧拖拽创建连线"></span>
+                    <span class="card-connection-port bottom" data-port="bottom" title="从下侧拖拽创建连线"></span>
+                    <span class="card-connection-port left" data-port="left" title="从左侧拖拽创建连线"></span>
                     <div class="card-resize-handle" data-card-id="${cardData.id}"></div>
                 `;
 
@@ -1629,6 +1666,7 @@
                 const cols = 3;
                 const startX = this.settings.navigatorCollapsed ? 70 : 300;
                 const startY = 50;
+                const createdCards = [];
 
                 if (group.templates) {
                     group.templates.forEach((template, index) => {
@@ -1655,6 +1693,7 @@
                             updatedAt: Date.now()
                         };
                         target.cards.push(card);
+                        createdCards.push(card);
                     });
                 } else if (group.templateIds) {
                     group.templateIds.forEach((templateId, index) => {
@@ -1683,8 +1722,21 @@
                                 updatedAt: Date.now()
                             };
                             target.cards.push(card);
+                            createdCards.push(card);
                         }
                     });
+                }
+
+                // 域名基础拆解组合自带“总览 → 详情”关系，用户仍可继续编辑、反转或删除这些连线。
+                if (group.id === 'domain-breakdown' && createdCards.length > 1) {
+                    const rootCard = createdCards[0];
+                    const seededConnections = createdCards.slice(1).map((card, index) => ({
+                        id: 'conn-' + Date.now() + '-' + index,
+                        from: rootCard.id,
+                        to: card.id,
+                        type: 'related'
+                    }));
+                    target.connections = [...(target.connections || []), ...seededConnections];
                 }
 
                 this.renderCanvas();
@@ -3444,8 +3496,18 @@
                 if (!svg || !card) return;
                 const svgRect = svg.getBoundingClientRect();
                 const cardRect = card.getBoundingClientRect();
-                const startX = sourcePort === 'out' ? cardRect.right - svgRect.left : cardRect.left - svgRect.left;
-                const startY = cardRect.top + cardRect.height / 2 - svgRect.top;
+                const side = ['top', 'right', 'bottom', 'left'].includes(sourcePort)
+                    ? sourcePort
+                    : sourcePort === 'out' ? 'right' : 'left';
+                const portPoints = {
+                    top: { x: cardRect.left + cardRect.width / 2, y: cardRect.top },
+                    right: { x: cardRect.right, y: cardRect.top + cardRect.height / 2 },
+                    bottom: { x: cardRect.left + cardRect.width / 2, y: cardRect.bottom },
+                    left: { x: cardRect.left, y: cardRect.top + cardRect.height / 2 }
+                };
+                const portPoint = portPoints[side];
+                const startX = portPoint.x - svgRect.left;
+                const startY = portPoint.y - svgRect.top;
                 const draft = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 draft.setAttribute('class', 'connection-draft');
                 draft.setAttribute('x1', startX); draft.setAttribute('y1', startY); draft.setAttribute('x2', startX); draft.setAttribute('y2', startY);
@@ -3458,7 +3520,8 @@
                     if (!targetId || targetId === sourceCardId) return;
                     const target = this.getCurrentTarget();
                     if ((target.connections || []).some(conn => conn.from === sourceCardId && conn.to === targetId)) return this.showShortcutHint('这条连线已存在');
-                    const connection = { id: 'conn-' + Date.now(), from: sourcePort === 'out' ? sourceCardId : targetId, to: sourcePort === 'out' ? targetId : sourceCardId, type: 'related' };
+                    const legacyInbound = sourcePort === 'in';
+                    const connection = { id: 'conn-' + Date.now(), from: legacyInbound ? targetId : sourceCardId, to: legacyInbound ? sourceCardId : targetId, type: 'related' };
                     target.connections = [...(target.connections || []), connection];
                     this.saveData(); this.renderConnections(); this.openConnectionEditor(connection.id);
                 };
@@ -3471,6 +3534,28 @@
                 this.editingConnectionId = connectionId;
                 document.getElementById('connectionTypeInput').value = connection.type || 'related';
                 document.getElementById('connectionModal').classList.add('show');
+            }
+
+            handleConnectionClick(event, connectionId) {
+                event.stopPropagation();
+                if (event.ctrlKey || event.metaKey) {
+                    this.deleteConnection(connectionId);
+                    return;
+                }
+                this.openConnectionEditor(connectionId);
+            }
+
+            deleteConnection(connectionId) {
+                const target = this.getCurrentTarget();
+                if (!target || !Array.isArray(target.connections)) return;
+                const exists = target.connections.some(connection => connection.id === connectionId);
+                if (!exists) return;
+                this.saveHistory();
+                target.connections = target.connections.filter(connection => connection.id !== connectionId);
+                if (this.editingConnectionId === connectionId) this.closeConnectionEditor();
+                this.saveData();
+                this.renderConnections();
+                this.showShortcutHint('连线已删除，可按 Ctrl+Z 撤销');
             }
 
             closeConnectionEditor() { document.getElementById('connectionModal').classList.remove('show'); this.editingConnectionId = null; }
@@ -3946,6 +4031,20 @@
 
                         const connType = CONNECTION_TYPES.find(ct => ct.id === conn.type) || CONNECTION_TYPES[0];
 
+                        // 视觉线保持纤细，点击热区单独加宽，避免用户必须精确命中 2px 线条。
+                        const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        hitArea.classList.add('connection-hit-area');
+                        hitArea.dataset.fromCard = conn.from;
+                        hitArea.dataset.toCard = conn.to;
+                        hitArea.setAttribute('x1', x1);
+                        hitArea.setAttribute('y1', y1);
+                        hitArea.setAttribute('x2', x2);
+                        hitArea.setAttribute('y2', y2);
+                        hitArea.setAttribute('stroke-width', '18');
+                        hitArea.style.pointerEvents = 'stroke';
+                        hitArea.onclick = event => this.handleConnectionClick(event, conn.id);
+                        svg.appendChild(hitArea);
+
                         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                         line.classList.add('connection-line');
                         line.dataset.fromCard = conn.from;
@@ -3961,10 +4060,10 @@
                         line.style.pointerEvents = 'stroke';
 
                         const titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-                        titleEl.textContent = connType.label + ' · 单击编辑';
+                        titleEl.textContent = connType.label + ' · 单击编辑 · Ctrl+点击删除';
                         line.appendChild(titleEl);
 
-                        line.onclick = () => this.openConnectionEditor(conn.id);
+                        line.onclick = event => this.handleConnectionClick(event, conn.id);
 
                         svg.appendChild(line);
 
@@ -3981,7 +4080,7 @@
                         labelBg.setAttribute('rx', 10);
                         labelBg.setAttribute('fill', connType.color);
                         labelBg.style.cursor = 'pointer';
-                        labelBg.onclick = () => this.openConnectionEditor(conn.id);
+                        labelBg.onclick = event => this.handleConnectionClick(event, conn.id);
                         svg.appendChild(labelBg);
 
                         const labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -3993,7 +4092,7 @@
                         labelText.style.cursor = 'pointer';
                         labelText.style.userSelect = 'none';
                         labelText.textContent = connType.label;
-                        labelText.onclick = () => this.openConnectionEditor(conn.id);
+                        labelText.onclick = event => this.handleConnectionClick(event, conn.id);
                         svg.appendChild(labelText);
                     }
                 });

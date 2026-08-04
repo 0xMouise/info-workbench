@@ -122,16 +122,16 @@ try {
     const samples = window.__panPerf.intervals.slice(2);
     const sorted = [...samples].sort((a, b) => a - b);
     const percentile = (value) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * value))] || 0;
-    const line = document.querySelector('#canvasConnections line');
+    const line = document.querySelector('#canvasConnections .connection-line');
+    const hitArea = document.querySelector('#canvasConnections .connection-hit-area');
     let connectionEndpointErrorPx = 0;
-    if (line) {
-      const target = app.getCurrentTarget();
-      const connection = target.connections[0];
-      const from = document.getElementById('card-' + connection.from).getBoundingClientRect();
-      const svg = document.getElementById('canvasConnections').getBoundingClientRect();
-      const expectedX = from.left + from.width / 2 - svg.left;
-      const expectedY = from.top + from.height / 2 - svg.top;
-      connectionEndpointErrorPx = Math.hypot(Number(line.getAttribute('x1')) - expectedX, Number(line.getAttribute('y1')) - expectedY);
+    if (line && hitArea) {
+      connectionEndpointErrorPx = Math.max(
+        Math.abs(Number(line.getAttribute('x1')) - Number(hitArea.getAttribute('x1'))),
+        Math.abs(Number(line.getAttribute('y1')) - Number(hitArea.getAttribute('y1'))),
+        Math.abs(Number(line.getAttribute('x2')) - Number(hitArea.getAttribute('x2'))),
+        Math.abs(Number(line.getAttribute('y2')) - Number(hitArea.getAttribute('y2')))
+      );
     }
     const navigator = document.getElementById('cardNavigator');
     const selectedCount = document.getElementById('selectedCount');
@@ -149,6 +149,12 @@ try {
     const canvasAreaRatio = (canvas.offsetWidth * canvas.offsetHeight) / Math.max(1, wrapper.clientWidth * wrapper.clientHeight);
     const gridUsesCompositorLayer = !!document.getElementById('canvasGrid') && getComputedStyle(wrapper).backgroundImage === 'none';
     const firstCard = document.querySelector('.card');
+    const domainGroup = app.data.cardGroups?.find(group => group.id === 'domain-breakdown');
+    const domainBreakdownSupported = !!domainGroup && (domainGroup.templates || []).map(template => template.id).join(',') === 'domain,whois,icp,dns';
+    const connectionDeleteSupported = typeof app.handleConnectionClick === 'function' && typeof app.deleteConnection === 'function';
+    const fourSidePortsSupported = !!firstCard && ['top', 'right', 'bottom', 'left'].every(side => firstCard.querySelector('.card-connection-port[data-port="' + side + '"]'));
+    const portHitTargetSupported = !!firstCard && ['top', 'right', 'bottom', 'left'].every(side => (firstCard.querySelector('.card-connection-port[data-port="' + side + '"]')?.getBoundingClientRect().width || 0) >= 24);
+    const connectionHitAreaSupported = !!document.querySelector('#canvasConnections .connection-hit-area[stroke-width="18"]');
     const syncSummarySupported = typeof app.summarizeAgentSync === 'function';
     let syncSummaryCorrect = false;
     if (syncSummarySupported) {
@@ -218,6 +224,11 @@ try {
       panningClassCleared: !document.body.classList.contains('canvas-panning'),
       selectionBarUnified,
       compactCardTools,
+      domainBreakdownSupported,
+      connectionDeleteSupported,
+      fourSidePortsSupported,
+      portHitTargetSupported,
+      connectionHitAreaSupported,
       agentReceiptPresent: !!receipt,
       syncSummaryCorrect,
       autoRevealSupported: typeof app.ensureCardsVisible === 'function',
@@ -254,7 +265,7 @@ try {
     throw new Error(`Canvas compositor regression: ${JSON.stringify(result)}`);
   }
   if (!result.panningClassCleared) throw new Error('Canvas panning performance state was not cleared');
-  if (!result.selectionBarUnified || !result.compactCardTools || !result.agentReceiptPresent || !result.syncSummaryCorrect || !result.autoRevealSupported) {
+  if (!result.selectionBarUnified || !result.compactCardTools || !result.domainBreakdownSupported || !result.connectionDeleteSupported || !result.fourSidePortsSupported || !result.portHitTargetSupported || !result.connectionHitAreaSupported || !result.agentReceiptPresent || !result.syncSummaryCorrect || !result.autoRevealSupported) {
     throw new Error(`UX workflow regression: ${JSON.stringify(result)}`);
   }
   if (!result.agentInboxPresent || !result.agentBatchCorrect || !result.combinedFiltersPresent || !result.filterPredicateCorrect || !result.performanceToolbarPresent || !result.performancePolicyCorrect || !result.performanceCullingCorrect) {

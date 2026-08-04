@@ -412,7 +412,7 @@
     <div class="modal-overlay" id="connectionModal">
         <div class="modal v7-modal">
             <div class="modal-header"><div class="modal-title">编辑连线</div><button class="modal-close" onclick="app.closeConnectionEditor()">&times;</button></div>
-            <div class="modal-body"><div class="form-group"><label class="form-label">关系类型</label><select class="form-input" id="connectionTypeInput"></select></div></div>
+            <div class="modal-body"><div class="form-group"><label class="form-label">关系类型</label><select class="form-input" id="connectionTypeInput"></select><div class="connection-hint">单击连线编辑；按住 Ctrl/Cmd 点击连线可直接删除，删除后可用 Ctrl/Cmd + Z 撤销。</div></div></div>
             <div class="modal-footer"><button class="btn btn-default" onclick="app.deleteEditingConnection()">删除</button><button class="btn btn-default" onclick="app.reverseEditingConnection()">反转方向</button><button class="btn btn-primary-v6" onclick="app.saveConnectionEditor()">保存</button></div>
         </div>
     </div>
