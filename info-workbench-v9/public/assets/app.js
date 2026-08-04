@@ -1449,7 +1449,7 @@
                     <div class="card-content" style="display: ${cardData.collapsed ? 'none' : 'block'}">
                         ${cardData.viewMode === 'markdown' ?
                             `<div class="markdown-content" id="markdown-${cardData.id}"></div>` :
-                            `<textarea placeholder="${this.escapeHTML(FIELD_PLACEHOLDERS[cardData.templateId] || cardData.desc || '输入内容...')}" oninput="app.updateCardData('${cardData.id}', this.value)">${this.escapeHTML(cardData.data || '')}</textarea>`
+                            `<textarea spellcheck="false" placeholder="${this.escapeHTML(FIELD_PLACEHOLDERS[cardData.templateId] || cardData.desc || '输入内容...')}" oninput="app.updateCardData('${cardData.id}', this.value)">${this.escapeHTML(cardData.data || '')}</textarea>`
                         }
                     </div>
                     <div class="card-tools" style="display: ${cardData.collapsed ? 'none' : 'flex'}">
